@@ -25,14 +25,15 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  solidity: "0.8.5",
   networks: {
     hardhat:{
       forking: {
-        url: process.env.ROPSTEN_URL,
+        url: process.env.GOERII_URL_AlCHEMY,
         allowUnlimitedContractSize: true,
         timeout:90000,
         //blockNumber:12325509
+        blockNumber:7022764,
+        chainId:5
       }
       
     },
@@ -76,6 +77,17 @@ module.exports = {
       chainId:159
 
     },
+
+  goerli: {
+    url: process.env.GOERII_URL_AlCHEMY,
+    accounts:{
+      mnemonic: process.env.MNEMONIC,
+      path: "m/44'/60'/0'/0",
+      initialIndex: 0,
+      count: 10,
+      passphrase: "",
+    }
+  }
 
 
   },
