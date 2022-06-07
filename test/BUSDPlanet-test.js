@@ -27,7 +27,7 @@ const { ethers } = require("hardhat");
       BUSDPlanetDividendTracker = await hre.ethers.getContractFactory("BusdPlanetDividendTracker");
       
       //deploy BusdPlanet
-      BusdPlanetDeployed = await BusdPlanet.deploy(process.env.ROUTER02, process.env.BEP20,addr1.address,addr2.address,addr3.address);
+      BusdPlanetDeployed = await BusdPlanet.deploy(process.env.ROUTER02, process.env.BEP20ROP,addr1.address,addr2.address,addr3.address);
       BusdPlanetDeployed.deployed()
 
       //deploy BUSDPlanetDividendTracker
@@ -37,36 +37,30 @@ const { ethers } = require("hardhat");
         
       this.provider = ethers.provider;
 
-      //set Factory
-      this.factory = new ethers.Contract(
-        process.env.FACTORY,
-        ['function getPair(address tokenA, address tokenB) external view returns (address pair)'],
-        this.provider
-      )
-        this.factorysigner = this.factory.connect(owner)
 
         //set Pair
         //const pairAddress = await this.factorysigner.callStatic.createPair(process.env.giversEdited, process.env.WETH)
       this.pairAddress = BusdPlanetDeployed.defaultPair()
-        this.pair = new ethers.Contract(
+      this.pair = new ethers.Contract(
           this.pairAddress,
           ['function totalSupply() external view returns (uint)','function balanceOf(address owner) external view returns (uint)','function approve(address spender, uint value) external returns (bool)','function decimals() external pure returns (uint8)','function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)'],
           this.provider
-        )
-        this.pairsigner =this.pair.connect(owner)
+      )
+      this.pairsigner =this.pair.connect(owner)
 
-        //set Router
-        this.router02 = new ethers.Contract(
-        process.env.ROUTER02,
-        ['function addLiquidityETH(address token, uint amountTokenDesired, uint amountTokenMin, uint amountETHMin, address to, uint deadline) external payable returns (uint amountToken, uint amountETH, uint liquidity)', 'function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)', 'function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)', 'function swapExactTokensForETHSupportingFeeOnTransferTokens( uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external','function removeLiquidityETHSupportingFeeOnTransferTokens( address token,uint liquidity,uint amountTokenMin,uint amountETHMin,address to,uint deadline) external returns (uint amountETH)'], 
-        this.provider);
-        this.routersigner = this.router02.connect(owner)
+      //set Router
+      this.router02 = new ethers.Contract(
+      process.env.ROUTER02,
+      ['function addLiquidityETH(address token, uint amountTokenDesired, uint amountTokenMin, uint amountETHMin, address to, uint deadline) external payable returns (uint amountToken, uint amountETH, uint liquidity)', 'function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)', 'function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)', 'function swapExactTokensForETHSupportingFeeOnTransferTokens( uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external','function removeLiquidityETHSupportingFeeOnTransferTokens( address token,uint liquidity,uint amountTokenMin,uint amountETHMin,address to,uint deadline) external returns (uint amountETH)'], 
+      this.provider);
+      this.routersigner = this.router02.connect(owner)
 
-        //Enable transfer
-        await BusdPlanetDeployed.setTransfersEnabled(true)
+      //Enable transfer
+      await BusdPlanetDeployed.setTransfersEnabled(true)
 
-        //set devident tracker
-        await  BusdPlanetDeployed.
+      //set devidend tracker
+                         
+      await  BusdPlanetDeployed.initializeDividendTracker(BUSDPlanetDividendTrackerDeployed.address)
 
       //add liquidty
       await BusdPlanetDeployed.approve(process.env.ROUTER02, ethers.utils.parseEther("100000"));
