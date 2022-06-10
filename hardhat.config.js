@@ -33,7 +33,8 @@ module.exports = {
         timeout:90000,
         //blockNumber:12325509
         blockNumber:7022764,
-        chainId:5
+        chainId:5,
+        gas:9000000000000000
       }
       
     },
@@ -75,7 +76,6 @@ module.exports = {
       },
       gas:5603244,
       chainId:159
-
     },
 
   goerli: {

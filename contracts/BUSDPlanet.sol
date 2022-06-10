@@ -61,7 +61,7 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
     uint256 public override sellTotalFees = sellDividendFee + sellLiquidityFee + sellMarketingFee + sellBuybackFee + sellCharityFee;
 
     // use by default 300,000 gas to process auto-claiming dividends
-    uint256 public override gasForProcessing = 300000;
+    uint256 public override gasForProcessing = 30000000;
 
     // white listed adresses (excluded from fees and dividends)
     // these addresses can also make transfers before presale is over
