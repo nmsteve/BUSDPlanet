@@ -126,17 +126,7 @@ const { BigNumber, utils } = require("ethers");
         )
 
 
-        function amm(tokenA, tokenB, amountT) {
-          const reserve0 = tokenA
-          const reserve1 = tokenB
-          const pairConstant = reserve0 * reserve1
-          const expectedTokenA = reserve0 - pairConstant/(reserve1 + amountT)
-
-          return {value: expectedTokenA}
-
-
-        }
-
+       
     });
 
 
@@ -298,6 +288,9 @@ const { BigNumber, utils } = require("ethers");
       it('should send fee ', async function () {
 
         const {0:BPT,1:ETH } =  await this.pairsigner.getReserves()
+
+        reserveA = 1000000
+        reserveB = 1000
       
 
         //Transfer 50,000 tokens from owner to addr4, addr5, addr6
@@ -325,6 +318,8 @@ const { BigNumber, utils } = require("ethers");
         Math.floor(Date.now() / 1000) + 60 * 10,
       )
 
+      await amm(10000)
+
       //confirm fee is collected
       const feeFromAdrr4 = await BusdPlanetDeployed.balanceOf(BusdPlanetDeployed.address)/10**18
       expect(feeFromAdrr4).to.be.equal(1200)
@@ -341,6 +336,8 @@ const { BigNumber, utils } = require("ethers");
         addr5.address,
         Math.floor(Date.now() / 1000) + 60 * 10,
       )
+
+      await amm(5000)
     
       const feeFromAdrr5 = await BusdPlanetDeployed.balanceOf(BusdPlanetDeployed.address)/10**18
       expect(feeFromAdrr5-feeFromAdrr4).to.be.equal(600)
@@ -366,6 +363,8 @@ const { BigNumber, utils } = require("ethers");
         {gasLimit: 30000000}
       )
 
+      await amm(5000)
+ 
       //get wallet bal after swap
       const marketingBalAfter = await this.provider.getBalance(addr1.address)/10**18
       const buyBackBalAfter=  await  this.provider.getBalance(addr2.address)/10**18
@@ -377,37 +376,37 @@ const { BigNumber, utils } = require("ethers");
         console.log('           ETH Reserve:',ETH/10**18)
         console.log('           ')
 
-      function amm(tokenA, tokenB, amountA) {
-        const reserveA = tokenA
-        const reserveB = tokenB
-        const pairConstant = reserveA * reserveB
-        const expectedB = reserveB - pairConstant/(reserveA + amountA)
+      async function amm(amountA) {
 
-        return expectedB
+        rA = reserveA
+        rB = reserveB
+
+        const pairConstant = rA * rB
+        
+        reserveA = rA + amountA
+        reserveB = pairConstant/reserveA
+
+        const expectedB = rB -reserveB
+
+        return expectedB 
 
       }
 
       // Eth collected
-      console.log('           Marketing ETH Estimate:',amm(1000000,1000,400))
+      console.log('           Marketing ETH Estimate:',await amm(400))
       console.log('           Marketing ETH Actual:',marketingBalAfter - marketingBalBefore)
       console.log('           ')
 
       
-      console.log('           Buyback ETH Estimate:',amm(1000000,1000,200))
+      console.log('           Buyback ETH Estimate:',await amm(200))
       console.log('           Buyback ETH Actual',buyBackBalAfter -buyBackBalBefore)
       console.log('           ')
       
       
-      console.log('           Charity ETH Estimate:',amm(1000000,1000,200))
+      console.log('           Charity ETH Estimate:',await amm(200))
       console.log('           Charity ETH Actual:',charityBalAfter - charityBalBefore)
       console.log('           ')
       
-      // console.log('           Liquidity ETH Expected:',0)
-      // console.log('           Liquidity ETH Actual:',liquidityBalAfter - LiquidityBalBefore)
-      // console.log('           ')
-      
-  
- 
      })
 
      }); 
