@@ -14,6 +14,7 @@ const { BigNumber, utils } = require("ethers");
   let addr4;
   let addr5;
   let addr6;
+  let addr7
   let initialLiquidty;
   
   
@@ -22,7 +23,7 @@ const { BigNumber, utils } = require("ethers");
     beforeEach(async function () {
 
       //get signers
-      [owner, addr1, addr2, addr3, addr4, addr5,addr6,...addrs] = await ethers.getSigners();
+      [owner, addr1, addr2, addr3, addr4, addr5,addr6,addr7,...addrs] = await ethers.getSigners();
       
       //get contract factory
       const BEP20 = await ethers.getContractFactory("BEP20Token")
@@ -146,6 +147,15 @@ const { BigNumber, utils } = require("ethers");
           expect(ethers.utils.parseEther('30000000')).to.equal(ownerBalanceBUSD);
 
         });
+
+        it('Set other state valiables to right values',async function(){
+
+         expect(await BusdPlanetDeployed.transfersEnabled()).to.be.equal(true) 
+         expect(await BusdPlanetDeployed.gasForProcessing()).to.be.equal(30000000)
+         expect(await BusdPlanetDeployed.defaultDexRouter()).to.be.equal(process.env.ROUTER02)
+         expect(await BusdPlanetDeployed.defaultPair()).to.be.equal( await this.pairAddress)
+
+        })
 
       }); 
 
@@ -410,4 +420,54 @@ const { BigNumber, utils } = require("ethers");
      })
 
      }); 
+
+     describe('Update',function(){
+
+      it('Should update buy fees and sell fees',async function() {
+
+        await BusdPlanetDeployed.updateBuyFees(1000, 400,400, 200, 200);
+        await BusdPlanetDeployed.updateSellFees(2000, 300, 500, 200, 1000)
+
+           expect(await BusdPlanetDeployed.buyFeesCollected()).to.be.equal(0)
+           expect(await BusdPlanetDeployed.buyDividendFee()).to.be.equal(1000)
+           expect(await BusdPlanetDeployed.buyLiquidityFee()).to.be.equal(400)
+           expect(await BusdPlanetDeployed.buyMarketingFee()).to.be.equal(400)
+           expect(await BusdPlanetDeployed.buyBuybackFee()).to.be.equal(200)
+           expect(await BusdPlanetDeployed.buyCharityFee()).to.be.equal(200)
+           expect(await BusdPlanetDeployed.buyTotalFees()).to.be.equal(2200)  
+           
+           expect(await BusdPlanetDeployed.sellFeesCollected()).to.be.equal(0)
+           expect(await BusdPlanetDeployed.sellDividendFee()).to.be.equal(2000)
+           expect(await BusdPlanetDeployed.sellLiquidityFee()).to.be.equal(300)
+           expect(await BusdPlanetDeployed.sellMarketingFee()).to.be.equal(500)
+           expect(await BusdPlanetDeployed.sellBuybackFee()).to.be.equal(200)
+           expect(await BusdPlanetDeployed.sellCharityFee()).to.be.equal(1000)
+           expect(await BusdPlanetDeployed.sellTotalFees()).to.be.equal(4000)
+
+      } )
+
+      it('Should update Minmum Token Balance', async function(){
+           await BusdPlanetDeployed.updateMinTokenBalance(100000)
+           expect(await BUSDPlanetDividendTrackerDeployed.minimumTokenBalanceForDividends()).to.be.equal(utils.parseEther('100000'))
+      })
+      it('Should update Minmum SwapAndLiquidify Amount', async function(){
+        await BusdPlanetDeployed.updateSwapTokensAtAmount(utils.parseEther('1000'))
+        expect(await BusdPlanetDeployed.swapTokensAtAmount()).to.be.equal(utils.parseEther('1000'))
+
+      })
+
+      it('Should update Wallet address',async function(){
+       await  expect(BusdPlanetDeployed.updateMarketingWallet(addr1.address)).to.revertedWith('BUSDPlanet: The marketing wallet is already this address')
+       await  expect(BusdPlanetDeployed.updateLiquidityWallet(owner.address)).to.revertedWith('BUSDPlanet: The liquidity wallet is already this address')
+       await  expect(BusdPlanetDeployed.updateBuyBackWallet(addr2.address)).to.revertedWith('BUSDPlanet: The buyback wallet is already this address')
+       await  expect(BusdPlanetDeployed.updateCharityWallet(addr3.address)).to.revertedWith('BUSDPlanet: The charity wallet is already this address')
+
+       await  BusdPlanetDeployed.updateMarketingWallet(addr4.address)
+       await  BusdPlanetDeployed.updateLiquidityWallet(addr5.address)
+       await  BusdPlanetDeployed.updateBuyBackWallet(addr6.address)
+       await  BusdPlanetDeployed.updateCharityWallet(addr7.address)
+       await  expect(BusdPlanetDeployed.updateCharityWallet(owner.address)).to.revertedWith("BUSDPlanet: Account is already the value of 'excluded'")
+      })
+
+     })
   })

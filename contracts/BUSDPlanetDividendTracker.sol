@@ -49,10 +49,31 @@ contract BusdPlanetDividendTracker is Ownable, DividendPayingToken, ERC20TokenRe
         return owner();
     }
 
+    //making the contract editable by onlyownerOrDeployer
     function updateDeployerAddress(address newDeployer) external onlyOwnerOrDeployer{
         require(deployer != newDeployer, "The address is already set");
         deployer = newDeployer;
     }
+
+    function updateClaimWait(uint256 newClaimWait) external override onlyOwnerOrDeployer {
+        require(
+            newClaimWait >= 3600 && newClaimWait <= 86400,
+            "BusdPlanetDividendTracker: claimWait must be updated to between 1 and 24 hours"
+        );
+        require(newClaimWait != claimWait, "BusdPlanetDividendTracker: Cannot update claimWait to same value");
+        emit ClaimWaitUpdated(newClaimWait, claimWait);
+        claimWait = newClaimWait;
+    }
+
+    function updateMinTokenBalance(uint256 minTokens) external override onlyOwnerOrDeployer {
+        minimumTokenBalanceForDividends = minTokens * (10**18);
+    }
+
+    function updateLastProccedIndex(uint256 newIndex) external onlyOwnerOrDeployer {
+        lastProcessedIndex = newIndex * (10**18);
+    }
+
+
 
     function recoverERC20(address tokenAddress, uint256 tokenAmount)
         public
@@ -97,19 +118,6 @@ contract BusdPlanetDividendTracker is Ownable, DividendPayingToken, ERC20TokenRe
         emit IncludedInDividends(account);
     }
 
-    function updateClaimWait(uint256 newClaimWait) external override onlyOwnerOrDeployer {
-        require(
-            newClaimWait >= 3600 && newClaimWait <= 86400,
-            "BusdPlanetDividendTracker: claimWait must be updated to between 1 and 24 hours"
-        );
-        require(newClaimWait != claimWait, "BusdPlanetDividendTracker: Cannot update claimWait to same value");
-        emit ClaimWaitUpdated(newClaimWait, claimWait);
-        claimWait = newClaimWait;
-    }
-
-    function updateMinTokenBalance(uint256 minTokens) external override onlyOwnerOrDeployer {
-        minimumTokenBalanceForDividends = minTokens * (10**18);
-    }
 
     function getLastProcessedIndex() external view override returns (uint256) {
         return lastProcessedIndex;

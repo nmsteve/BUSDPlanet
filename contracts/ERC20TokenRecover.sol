@@ -32,4 +32,6 @@ contract ERC20TokenRecover is Ownable, IERC20TokenRecover {
         (bool sent, ) = owner().call{value: amount}('');
         require(sent, 'ERC20TokenRecover: SENDING_ETHER_FAILED');
     }
+
+    
 }

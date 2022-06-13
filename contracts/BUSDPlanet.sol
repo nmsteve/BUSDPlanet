@@ -39,9 +39,9 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
 
     // Supply and amounts
     // 10 millions (this will also be the total supply as there is not public mint function)
-    uint256 private _startSupply = 10000000 * (10**18);
+    uint256 private  constant _startSupply = 10000000 * (10**18);
     uint256 public override swapTokensAtAmount = 2400 * (10**18);
-    uint256 public override maxWalletToken =  200000 * (10**18); // 2% of total supply
+    uint256 public override constant maxWalletToken =  200000 * (10**18); // 2% of total supply
 
     // fees (from a total of 10000)
     uint256 public override buyFeesCollected = 0;
@@ -113,16 +113,11 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
     receive() external payable {}
 
     //== BEP20 owner function ==
-    function getOwner() public view override returns (address) {
+    function getOwner() external view override returns (address) {
         return owner();
     }
 
-    function updateNameAndSymbol(string memory name_, string memory symbol_) external onlyOwner {
-        require(!nameChanged, "BUSDPlanet: Name already changed");
-        _name = name_;
-        _symbol = symbol_;
-        nameChanged = true;
-    }
+   
 
     /**
      * @dev See {IERC165-supportsInterface}.
@@ -150,20 +145,33 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
         }
     }
 
-    function updateDividendTracker(address newAddress) external override onlyOwner {
-        require(newAddress != address(0), "BUSDPlanet: Dividend tracker not yet initialized");
-        require(newAddress != address(dividendTracker), "BUSDPlanet: The dividend tracker already has that address");
-
-        IBusdPlanetDividendTracker newDividendTracker = IBusdPlanetDividendTracker(payable(newAddress));
+    function setAutomatedMarketMakerPair(address pair, bool value) external override onlyOwner {
         require(
-            newDividendTracker.getOwner() == address(this),
-            "BUSDPlanet: The new dividend tracker must be owned by the BUSDPlanet token contract"
+            value || pair != defaultPair,
+            "BUSDPlanet: The default pair cannot be removed from automatedMarketMakerPairs"
+        );
+        _setAutomatedMarketMakerPair(pair, value);
+    }
+
+    function _setAutomatedMarketMakerPair(address pair, bool value) private {
+        require(
+            automatedMarketMakerPairs[pair] != value,
+            "BUSDPlanet: Automated market maker pair is already set to that value"
         );
 
-        setWhitelistAddress(address(newDividendTracker), true);
-        dividendTracker = newDividendTracker;
-        emit UpdateDividendTracker(newAddress, address(dividendTracker));
+        automatedMarketMakerPairs[pair] = value;
+        if (value && address(dividendTracker) != address(0)) dividendTracker.excludeFromDividends(pair);
+        emit SetAutomatedMarketMakerPair(pair, value);
     }
+
+    /**
+     * Enable or disable transfers, used before presale and on critical problems in or with the token contract
+     */
+
+    function setTransfersEnabled(bool enabled) external override onlyOwner {
+        transfersEnabled = enabled;
+    }
+
 
     function addNewRouter(address _router, bool makeDefault) external override onlyOwner {
         dexRouters[_router] = true;
@@ -189,28 +197,25 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
         }
     }
 
-    function setAutomatedMarketMakerPair(address pair, bool value) external override onlyOwner {
-        require(
-            value || pair != defaultPair,
-            "BUSDPlanet: The default pair cannot be removed from automatedMarketMakerPairs"
-        );
-        _setAutomatedMarketMakerPair(pair, value);
+     function updateNameAndSymbol(string memory name_, string memory symbol_) external onlyOwner {
+        require(!nameChanged, "BUSDPlanet: Name already changed");
+        _name = name_;
+        _symbol = symbol_;
+        nameChanged = true;
     }
 
-    function _setAutomatedMarketMakerPair(address pair, bool value) private {
-        require(
-            automatedMarketMakerPairs[pair] != value,
-            "BUSDPlanet: Automated market maker pair is already set to that value"
-        );
-
-        automatedMarketMakerPairs[pair] = value;
-        if (value && address(dividendTracker) != address(0)) dividendTracker.excludeFromDividends(pair);
-        emit SetAutomatedMarketMakerPair(pair, value);
-    }
 
     function updateMinTokenBalance(uint256 minTokens) external override onlyOwner {
         dividendTracker.updateMinTokenBalance(minTokens);
     }
+
+    
+    function updateSwapTokensAtAmount(uint256 _swapTokensAtAmount) external override onlyOwner {
+        require(_swapTokensAtAmount > 0, "BUSDPlanet: Amount should be higher then 0");
+        require(_swapTokensAtAmount <= 10 * (10**6) * (10**18), "BUSDPlanet: Max should be at 10%");
+        swapTokensAtAmount = _swapTokensAtAmount;
+    }
+
 
     function updateMarketingWallet(address newMarketingWallet) external override onlyOwner {
         require(newMarketingWallet != marketingWallet, "BUSDPlanet: The marketing wallet is already this address");
@@ -227,17 +232,32 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
     }
 
     function updateBuyBackWallet(address newBuyBackWallet) external override onlyOwner {
-        require(newBuyBackWallet != buyBackWallet, "BUSDPlanet: The liquidity wallet is already this address");
+        require(newBuyBackWallet != buyBackWallet, "BUSDPlanet: The buyback wallet is already this address");
         setWhitelistAddress(newBuyBackWallet, true);
         emit LiquidityWalletUpdated(newBuyBackWallet, buyBackWallet);
         buyBackWallet = newBuyBackWallet;
     }
 
     function updateCharityWallet(address newCharityWallet) external override onlyOwner {
-        require(newCharityWallet != charityWallet, "BUSDPlanet: The liquidity wallet is already this address");
+        require(newCharityWallet != charityWallet, "BUSDPlanet: The charity wallet is already this address");
         setWhitelistAddress(newCharityWallet, true);
         emit LiquidityWalletUpdated(newCharityWallet, charityWallet);
         charityWallet = newCharityWallet;
+    }
+
+    function updateDividendTracker(address newAddress) external override onlyOwner {
+        require(newAddress != address(0), "BUSDPlanet: Dividend tracker not yet initialized");
+        require(newAddress != address(dividendTracker), "BUSDPlanet: The dividend tracker already has that address");
+
+        IBusdPlanetDividendTracker newDividendTracker = IBusdPlanetDividendTracker(payable(newAddress));
+        require(
+            newDividendTracker.getOwner() == address(this),
+            "BUSDPlanet: The new dividend tracker must be owned by the BUSDPlanet token contract"
+        );
+
+        setWhitelistAddress(address(newDividendTracker), true);
+        dividendTracker = newDividendTracker;
+        emit UpdateDividendTracker(newAddress, address(dividendTracker));
     }
 
     function updateGasForProcessing(uint256 newValue) external override onlyOwner {
@@ -254,6 +274,38 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
         dividendTracker.updateClaimWait(claimWait);
     }
 
+     function updateBuyFees(
+        uint256 _dividendFee,
+        uint256 _liquidityFee,
+        uint256 _marketingFee,
+        uint256 _buyBackFee,
+        uint256 _charityFee
+    ) external override onlyOwner {
+        buyDividendFee = _dividendFee;
+        buyLiquidityFee = _liquidityFee;
+        buyMarketingFee = _marketingFee;
+        buyBuybackFee = _buyBackFee;
+        buyCharityFee = _charityFee;
+        buyTotalFees = buyDividendFee + buyLiquidityFee + buyMarketingFee + buyBuybackFee + buyCharityFee;
+        require(buyTotalFees <= 5000, "Max fee  is 50%");
+    }
+
+    function updateSellFees(
+        uint256 _dividendFee,
+        uint256 _liquidityFee,
+        uint256 _marketingFee,
+        uint256 _buyBackFee,
+        uint256 _charityFee
+    ) external override onlyOwner {
+        sellDividendFee = _dividendFee;
+        sellLiquidityFee = _liquidityFee;
+        sellMarketingFee = _marketingFee;
+        sellBuybackFee = _buyBackFee;
+        sellCharityFee = _charityFee;
+        sellTotalFees = sellDividendFee + sellLiquidityFee + sellMarketingFee + sellBuybackFee + sellCharityFee;
+        require(sellTotalFees <= 5000, "Max fee is 50%");
+    }
+
     function getClaimWait() external view override returns (uint256) {
         return dividendTracker.claimWait();
     }
@@ -262,19 +314,7 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
         return dividendTracker.totalDividendsDistributed();
     }
 
-    function isExcludedFromFees(address account) external view override returns (bool) {
-        return _isExcludedFromFees[account];
-    }
-
-    function withdrawableDividendOf(address account) external view override returns (uint256) {
-        return dividendTracker.withdrawableDividendOf(account);
-    }
-
-    function dividendTokenBalanceOf(address account) external view override returns (uint256) {
-        return dividendTracker.balanceOf(account);
-    }
-
-    function getAccountDividendsInfo(address account)
+     function getAccountDividendsInfo(address account)
         external
         view
         override
@@ -310,15 +350,6 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
         return dividendTracker.getAccountAtIndex(index);
     }
 
-    function processDividendTracker(uint256 gas) external override {
-        (uint256 iterations, uint256 claims, uint256 lastProcessedIndex) = dividendTracker.process(gas);
-        emit ProcessedDividendTracker(iterations, claims, lastProcessedIndex, false, gas, tx.origin);
-    }
-
-    function claim() external override {
-        dividendTracker.processAccount(payable(msg.sender), false);
-    }
-
     function getLastProcessedIndex() external view override returns (uint256) {
         return dividendTracker.getLastProcessedIndex();
     }
@@ -327,49 +358,27 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
         return dividendTracker.getNumberOfTokenHolders();
     }
 
-    /**
-     * Enable or disable transfers, used before presale and on critical problems in or with the token contract
-     */
-    function setTransfersEnabled(bool enabled) external override onlyOwner {
-        transfersEnabled = enabled;
+
+    function isExcludedFromFees(address account) external view override returns (bool) {
+        return _isExcludedFromFees[account];
     }
 
-    function updateBuyFees(
-        uint256 _dividendFee,
-        uint256 _liquidityFee,
-        uint256 _marketingFee,
-        uint256 _buyBackFee,
-        uint256 _charityFee
-    ) external override onlyOwner {
-        buyDividendFee = _dividendFee;
-        buyLiquidityFee = _liquidityFee;
-        buyMarketingFee = _marketingFee;
-        buyBuybackFee = _buyBackFee;
-        buyCharityFee = _charityFee;
-        buyTotalFees = buyDividendFee + buyLiquidityFee + buyMarketingFee + buyBuybackFee + buyCharityFee;
-        require(buyTotalFees <= 5000, "Max fee  is 50%");
+    function withdrawableDividendOf(address account) external view override returns (uint256) {
+        return dividendTracker.withdrawableDividendOf(account);
     }
 
-    function updateSellFees(
-        uint256 _dividendFee,
-        uint256 _liquidityFee,
-        uint256 _marketingFee,
-        uint256 _buyBackFee,
-        uint256 _charityFee
-    ) external override onlyOwner {
-        sellDividendFee = _dividendFee;
-        sellLiquidityFee = _liquidityFee;
-        sellMarketingFee = _marketingFee;
-        sellBuybackFee = _buyBackFee;
-        sellCharityFee = _charityFee;
-        sellTotalFees = sellDividendFee + sellLiquidityFee + sellMarketingFee + sellBuybackFee + sellCharityFee;
-        require(sellTotalFees <= 5000, "Max fee is 50%");
+    function dividendTokenBalanceOf(address account) external view override returns (uint256) {
+        return dividendTracker.balanceOf(account);
     }
 
-    function updateSwapTokensAtAmount(uint256 _swapTokensAtAmount) external override onlyOwner {
-        require(_swapTokensAtAmount > 0, "BUSDPlanet: Amount should be higher then 0");
-        require(_swapTokensAtAmount <= 10 * (10**6) * (10**18), "BUSDPlanet: Max should be at 10%");
-        swapTokensAtAmount = _swapTokensAtAmount;
+
+    function processDividendTracker(uint256 gas) external override {
+        (uint256 iterations, uint256 claims, uint256 lastProcessedIndex) = dividendTracker.process(gas);
+        emit ProcessedDividendTracker(iterations, claims, lastProcessedIndex, false, gas, tx.origin);
+    }
+
+    function claim() external override {
+        dividendTracker.processAccount(payable(msg.sender), false);
     }
 
     function _transfer(
