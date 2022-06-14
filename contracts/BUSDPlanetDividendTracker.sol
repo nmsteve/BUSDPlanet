@@ -25,6 +25,8 @@ contract BusdPlanetDividendTracker is Ownable, DividendPayingToken, ERC20TokenRe
     uint256 public override claimWait;
     uint256 public override minimumTokenBalanceForDividends;
 
+     bool private nameChanged = false;
+
     /**
      * @dev Throws if called by any account other than the owner or deployer.
      */
@@ -68,11 +70,17 @@ contract BusdPlanetDividendTracker is Ownable, DividendPayingToken, ERC20TokenRe
     function updateMinTokenBalance(uint256 minTokens) external override onlyOwnerOrDeployer {
         minimumTokenBalanceForDividends = minTokens * (10**18);
     }
-
-    function updateLastProccedIndex(uint256 newIndex) external onlyOwnerOrDeployer {
-        lastProcessedIndex = newIndex * (10**18);
+ 
+    function updateNameAndSymbol(string memory name_, string memory symbol_) external onlyOwnerOrDeployer {
+        require(!nameChanged, "BusdPlanetDividendTracker: Name already changed");
+        _name = name_;
+        _symbol = symbol_;
+        nameChanged = true;
     }
 
+    function updateLastProccedIndex(uint256 newIndex) external onlyOwnerOrDeployer {
+        lastProcessedIndex = newIndex;
+    }
 
 
     function recoverERC20(address tokenAddress, uint256 tokenAmount)
