@@ -25,7 +25,8 @@ contract BusdPlanetDividendTracker is Ownable, DividendPayingToken, ERC20TokenRe
     uint256 public override claimWait;
     uint256 public override minimumTokenBalanceForDividends;
 
-     bool private nameChanged = false;
+    bool private nameChanged = false;
+ 
 
     /**
      * @dev Throws if called by any account other than the owner or deployer.
@@ -34,6 +35,7 @@ contract BusdPlanetDividendTracker is Ownable, DividendPayingToken, ERC20TokenRe
         require(owner() == _msgSender() || deployer == _msgSender(), "Ownable: caller is not the owner or deployer");
         _;
     }
+
 
     constructor(address dividendToken, address _parentToken)
         DividendPayingToken("BUSDPlanet Dividend Tracker", "BPTDT", dividendToken)
@@ -55,6 +57,8 @@ contract BusdPlanetDividendTracker is Ownable, DividendPayingToken, ERC20TokenRe
     function updateDeployerAddress(address newDeployer) external onlyOwnerOrDeployer{
         require(deployer != newDeployer, "The address is already set");
         deployer = newDeployer;
+
+        emit UpdateDeployerAddress(deployer,newDeployer);
     }
 
     function updateClaimWait(uint256 newClaimWait) external override onlyOwnerOrDeployer {
@@ -67,21 +71,30 @@ contract BusdPlanetDividendTracker is Ownable, DividendPayingToken, ERC20TokenRe
         claimWait = newClaimWait;
     }
 
-    function updateMinTokenBalance(uint256 minTokens) external override onlyOwnerOrDeployer {
-        minimumTokenBalanceForDividends = minTokens * (10**18);
+    function updateMinTokenBalance(uint256 newMinTokens) external override onlyOwnerOrDeployer {
+
+        require(minimumTokenBalanceForDividends!= newMinTokens * (10**18)," Can't update to same value");
+        minimumTokenBalanceForDividends = newMinTokens * (10**18);
+        emit UpdateMinTokenBalance(minimumTokenBalanceForDividends,newMinTokens);
     }
  
-    function updateNameAndSymbol(string memory name_, string memory symbol_) external onlyOwnerOrDeployer {
-        require(!nameChanged, "BusdPlanetDividendTracker: Name already changed");
+    function updateNameAndSymbol(string memory name_, string memory symbol_) external  onlyOwnerOrDeployer {
+        require(!nameChanged, "Name already changed");
         _name = name_;
         _symbol = symbol_;
         nameChanged = true;
     }
 
+    function updateDividendToken(address newDividendToken) external  onlyOwnerOrDeployer {
+        require(newDividendToken != address(0), "Can not be address 0");
+        require(newDividendToken != dividendToken, "Already set to this address");
+        dividendToken = newDividendToken;
+        emit UpdateDividendToken(dividendToken, newDividendToken);
+    }
+
     function updateLastProccedIndex(uint256 newIndex) external onlyOwnerOrDeployer {
         lastProcessedIndex = newIndex;
     }
-
 
     function recoverERC20(address tokenAddress, uint256 tokenAmount)
         public

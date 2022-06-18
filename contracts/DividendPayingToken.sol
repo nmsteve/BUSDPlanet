@@ -13,7 +13,8 @@ abstract contract DividendPayingToken is
     IDividendPayingTokenInterface,
     IDividendPayingTokenOptionalInterface
 {
-    address public immutable override dividendToken;
+     //variable change from immutable
+    address public override dividendToken;
 
     uint256 internal constant magnitude = 2**128;
 

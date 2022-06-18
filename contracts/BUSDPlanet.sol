@@ -27,7 +27,11 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
     address public override defaultPair;
     
 
-    address public immutable override BUSD; 
+ //modification to allow change of Dividend Token
+    //address public immutable override BUSD;
+
+    address public override dividendToken;
+
     address public override marketingWallet;
     address public override liquidityWallet;
     address public override buyBackWallet;
@@ -74,13 +78,13 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
 
     constructor(
         address _routerAddress,
-        address _busd,
+        address _dividendToken,
         address _marketingWallet,
         address _buyBackWallet,
         address _charityWallet 
     ) ERC2612("BusdPlanet", "BPT") {
         IDEXRouter _dexRouter = IDEXRouter(_routerAddress);
-        BUSD = _busd;
+        dividendToken = _dividendToken;
         marketingWallet = _marketingWallet;
         liquidityWallet = owner();
         charityWallet = _charityWallet;
@@ -304,6 +308,14 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
         sellCharityFee = _charityFee;
         sellTotalFees = sellDividendFee + sellLiquidityFee + sellMarketingFee + sellBuybackFee + sellCharityFee;
         require(sellTotalFees <= 5000, "Max fee is 50%");
+    }
+
+
+    function updateDividendToken(address newDividendToken) external onlyOwner {
+        require(newDividendToken != address(0), "Can not be address 0");
+        require(newDividendToken != dividendToken, "Already set to this address");
+        dividendToken = newDividendToken;
+        emit UpdateDividendToken(dividendToken, newDividendToken);
     }
 
     function getClaimWait() external view override returns (uint256) {
@@ -580,29 +592,36 @@ contract BusdPlanet is ERC20, ERC1363, ERC2612, ERC20Burnable, ERC20TokenRecover
     }
 
     function swapAndSendDividends(uint256 tokens) private {
-        swapTokensForBUSD(tokens, address(this));
-        uint256 dividends = IERC20(BUSD).balanceOf(address(this));
-        bool success = IERC20(BUSD).transfer(address(dividendTracker), dividends);
+        //swap and send busd to this contract
+        swapTokensFordividendToken(tokens, address(this));
+                        
+        //get the sent dividendToken
+        uint256 dividends = IERC20(dividendToken).balanceOf(address(this));
+
+        //transfer to dividend tracker
+        bool success = IERC20(dividendToken).transfer(address(dividendTracker), dividends);
 
         if (success) {
+
+            //distribute to holders
             dividendTracker.distributeDividends(dividends);
             emit SendDividends(tokens, dividends);
         }
     }
 
-    function swapTokensForBUSD(uint256 tokenAmount, address recipient) private {
-        // generate the uniswap pair path of weth -> BUSD
+    function swapTokensFordividendToken(uint256 tokenAmount, address recipient) private {
+        // generate the uniswap pair path of weth -> dividendToken
         address[] memory path = new address[](3);
         path[0] = address(this);
         path[1] = defaultDexRouter.WETH();
-        path[2] = BUSD;
+        path[2] = dividendToken;
 
         _approve(address(this), address(defaultDexRouter), tokenAmount);
 
         // make the swap
         defaultDexRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
             tokenAmount,
-            0, // accept any amount of BUSD
+            0, // accept any amount of dividendToken
             path,
             recipient,
             block.timestamp

@@ -21,7 +21,10 @@ interface IBUSDPlanet is IBEP20, IERC1363, IERC2612, IERC20Burnable, IERC20Token
 
     function defaultPair() external view returns (address);
 
-    function BUSD() external view returns (address);
+    //modification to allow change of Dividend Token
+      //function BUSD() external view returns (address);
+
+    function dividendToken() external view returns (address);
 
     function marketingWallet() external view returns (address);
 
@@ -108,6 +111,7 @@ interface IBUSDPlanet is IBEP20, IERC1363, IERC2612, IERC20Burnable, IERC20Token
         uint256 gas,
         address indexed processor
     );
+     event UpdateDividendToken(address dividendToken, address newDividendToken);
 
     function initializeDividendTracker(IBusdPlanetDividendTracker _dividendTracker) external;
 
