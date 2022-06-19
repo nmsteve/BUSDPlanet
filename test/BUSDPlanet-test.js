@@ -101,9 +101,13 @@ const { BigNumber, utils } = require("ethers");
       expect(ownerCheck).to.be.equal(owner.address)
 
       //Top ETH from other accounts
-      addr1.sendTransaction({to: owner.address,value: ethers.utils.parseEther("2000")})
-      addr2.sendTransaction({to: owner.address,value: ethers.utils.parseEther("2000")})
-      addr3.sendTransaction({to: owner.address,value: ethers.utils.parseEther("2000")})
+      addr1.sendTransaction({to: owner.address,value: ethers.utils.parseEther("4000")})
+      addr2.sendTransaction({to: owner.address,value: ethers.utils.parseEther("4000")})
+      addr3.sendTransaction({to: owner.address,value: ethers.utils.parseEther("4000")})
+
+      addr1.sendTransaction({to: addr4.address,value: ethers.utils.parseEther("4000")})
+      addr2.sendTransaction({to: addr5.address,value: ethers.utils.parseEther("4000")})
+      addr3.sendTransaction({to: addr6.address,value: ethers.utils.parseEther("4000")})
 
       initialLiquidty = ethers.utils.parseEther('1000000')
 
@@ -132,7 +136,7 @@ const { BigNumber, utils } = require("ethers");
         )
 
         //add liquidity WETH-VAS
-        await reward.approve(process.env.ROUTER02, utils.parseEther("10000000"))
+        await reward.approve(process.env.ROUTER02, utils.parseEther("1000000"))
         await this.routersigner.addLiquidityETH(
           reward.address,
           initialLiquidty,
@@ -140,7 +144,7 @@ const { BigNumber, utils } = require("ethers");
           0,
           owner.address,
           Math.floor(Date.now()/1000 + 60),
-        {value : ethers.utils.parseEther("2000") }
+         {value : ethers.utils.parseEther("1000") }
         )
 
        
@@ -307,7 +311,7 @@ const { BigNumber, utils } = require("ethers");
 
      });
 
-    describe('Swap, Liquidify, send fee', function() {
+    describe.only('Swap, Liquidify, send fee', function() {
 
 
       it('should send fee ', async function () {
@@ -432,6 +436,10 @@ const { BigNumber, utils } = require("ethers");
       console.log('           Charity ETH Actual:',charityBalAfter - charityBalBefore)
       console.log('           ')
       
+      console.log('           Dividend')
+      console.log(`           Address 4: ${await BEP20Deployed.balanceOf(addr4.address)}`)
+      console.log(`           Address 5: ${await BEP20Deployed.balanceOf(addr5.address)}`)
+      console.log(`           Address 6: ${await BEP20Deployed.balanceOf(addr6.address)}`)
      })
 
      }); 
@@ -536,7 +544,7 @@ const { BigNumber, utils } = require("ethers");
         Math.floor(Date.now() / 1000) + 60 * 10
       )
 
-      console.log(`           Dividend in VAS: ${await reward.balanceOf(BPT.address)}`)
+      console.log(`           Dividend in VAS: ${await reward.balanceOf(addr4.address)}`)
 
       })
        
